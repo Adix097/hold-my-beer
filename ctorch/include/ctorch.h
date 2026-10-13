@@ -29,20 +29,30 @@ void ct_storage_release(CTStorage* s);
 
 typedef struct CTTensor {
     CTStorage* storage;
-    int ndim;
-    int64_t shape[CT_MAX_DIMS];
-    int64_t strides[CT_MAX_DIMS];
-    int64_t offset; // start position in storage
+    size_t ndim;
+    uint64_t shape[CT_MAX_DIMS];
+    uint64_t strides[CT_MAX_DIMS];
+    uint64_t offset; // start position in storage
 } CTTensor;
 
-CTTensor* ct_tensor_zeros(int ndim, const int64_t* shape);
-CTTensor* ct_tensor_ones(int ndim, const int64_t* shape);
-CTTensor* ct_tensor_from_data(const float* data, int ndim, const int64_t* shape);
+void compute_contiguous_strides(size_t ndim, const uint64_t* shape, uint64_t* strides);
+
+CTTensor* ct_tensor_zeros(size_t ndim, const uint64_t* shape);
+CTTensor* ct_tensor_ones(size_t ndim, const uint64_t* shape);
+CTTensor* ct_tensor_from_data(const float* data, size_t ndim, const uint64_t* shape);
 void ct_tensor_free(CTTensor* t);
 
-int64_t ct_tensor_numel(const CTTensor* t);
-float ct_tensor_get(const CTTensor* t, const int64_t* idx);
-void ct_tensor_set(CTTensor* t, const int64_t* idx, float value);
+CTTensor* ct_tensor_transpose(const CTTensor* t, size_t dim0, size_t dim1);
+CTTensor* ct_tensor_permute(const CTTensor* t, const size_t* dims);
+CTTensor* ct_tensor_slice(const CTTensor* t, size_t dim, size_t start, size_t end, size_t step);
+CTTensor* ct_tensor_select(const CTTensor* t, size_t dim, size_t index);
+int ct_tensor_is_contiguous(const CTTensor* t);
+CTTensor* ct_tensor_contiguous(const CTTensor* t);
+CTTensor* ct_tensor_reshape(const CTTensor* t, size_t ndim, const size_t* new_shape);
+
+uint64_t ct_tensor_numel(const CTTensor* t);
+float ct_tensor_get(const CTTensor* t, const uint64_t* idx);
+void ct_tensor_set(CTTensor* t, const uint64_t* idx, float value);
 void ct_tensor_print(const CTTensor* t);
 
 #endif
