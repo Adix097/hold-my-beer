@@ -27,12 +27,19 @@ CTStorage* ct_storage_new(size_t numel); // ref count starts at 1
 CTStorage* ct_storage_retain(CTStorage* s);
 void ct_storage_release(CTStorage* s);
 
+typedef struct CTNode CTNode;
+
 typedef struct CTTensor {
     CTStorage* storage;
     size_t ndim;
-    uint64_t shape[CT_MAX_DIMS];
-    uint64_t strides[CT_MAX_DIMS];
-    uint64_t offset; // start position in storage
+    size_t shape[CT_MAX_DIMS];
+    size_t strides[CT_MAX_DIMS];
+    size_t offset; // starting position in the storage
+
+    int refcount;
+    int requires_grad;
+    struct CTTensor* grad; // NULL until backward fills it
+    CTNode* grad_fn; // NULL for tensors created by user
 } CTTensor;
 
 void compute_contiguous_strides(size_t ndim, const uint64_t* shape, uint64_t* strides);
@@ -40,6 +47,7 @@ void compute_contiguous_strides(size_t ndim, const uint64_t* shape, uint64_t* st
 CTTensor* ct_tensor_zeros(size_t ndim, const uint64_t* shape);
 CTTensor* ct_tensor_ones(size_t ndim, const uint64_t* shape);
 CTTensor* ct_tensor_from_data(const float* data, size_t ndim, const uint64_t* shape);
+CTTensor* ct_tensor_retain(CTTensor* t);
 void ct_tensor_free(CTTensor* t);
 
 CTTensor* ct_tensor_transpose(const CTTensor* t, size_t dim0, size_t dim1);

@@ -5,6 +5,10 @@ static CTTensor* view_of(const CTTensor* src) {
     CTTensor* v = malloc(sizeof *v);
     CT_CHECK(v != NULL, "out of memory (view struct)");
     *v = *src;
+    v->refcount = 1;
+    v->requires_grad = 0;
+    v->grad = NULL;
+    v->grad_fn = NULL;
     ct_storage_retain(v->storage);
     return v;
 }

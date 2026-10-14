@@ -28,6 +28,7 @@ CTTensor* ct_tensor_zeros(size_t ndim, const uint64_t* shape) {
     CT_CHECK(ndim <= CT_MAX_DIMS, "ndim out of range");
 
     CTTensor* t = calloc(1, sizeof* t);
+    t->refcount = 1;
     CT_CHECK(t != NULL, "out of memory");
 
     t->ndim = ndim;
@@ -58,10 +59,20 @@ CTTensor* ct_tensor_from_data(const float* data, size_t ndim, const uint64_t* sh
     return t;
 }
 
+// retains the tensor by incrementing its reference count
+CTTensor* ct_tensor_retain(CTTensor* t) {
+    t->refcount++;
+    return t;
+}
+
 // destroy the tensor
 void ct_tensor_free(CTTensor* t) {
     if (t == NULL) return;
+    CT_CHECK(t->refcount > 0, "freeing tensor with refcount <= 0");
+    if (--t->refcount > 0) return;
+    
     ct_storage_release(t->storage);
+    ct_tensor_free(t->grad);
     free(t);
 }
 
