@@ -1,7 +1,7 @@
 #include "ctorch.h"
 #include <math.h>
 
-// Align shapes from the right; each pair must match or contain a 1
+// align shapes from the right; each pair must match or contain a 1
 static size_t broadcast_shape(const CTTensor* a, const CTTensor* b, size_t* out) {
     size_t nd = a->ndim > b->ndim ? a->ndim : b->ndim;
 

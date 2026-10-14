@@ -68,4 +68,10 @@ CTTensor* ct_tensor_log(const CTTensor* t);
 CTTensor* ct_tensor_sqrt(const CTTensor* t);
 CTTensor* ct_tensor_relu(const CTTensor* t);
 
+CTTensor* ct_tensor_sum(const CTTensor* t, size_t dim, int keepdim);
+CTTensor* ct_tensor_mean(const CTTensor* t, size_t dim, int keepdim);
+CTTensor* ct_tensor_max(const CTTensor* t, size_t dim, int keepdim);
+CTTensor* ct_tensor_sum_all(const CTTensor* t);
+CTTensor* ct_tensor_matmul(const CTTensor* a, const CTTensor* b);
+
 #endif
