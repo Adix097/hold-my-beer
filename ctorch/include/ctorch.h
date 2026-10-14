@@ -55,4 +55,17 @@ float ct_tensor_get(const CTTensor* t, const uint64_t* idx);
 void ct_tensor_set(CTTensor* t, const uint64_t* idx, float value);
 void ct_tensor_print(const CTTensor* t);
 
+CTTensor* ct_tensor_expand(const CTTensor* t, size_t ndim, const size_t* shape);
+
+CTTensor* ct_tensor_add(const CTTensor* a, const CTTensor* b);
+CTTensor* ct_tensor_sub(const CTTensor* a, const CTTensor* b);
+CTTensor* ct_tensor_mul(const CTTensor* a, const CTTensor* b);
+CTTensor* ct_tensor_div(const CTTensor* a, const CTTensor* b);
+
+CTTensor* ct_tensor_neg(const CTTensor* t);
+CTTensor* ct_tensor_exp(const CTTensor* t);
+CTTensor* ct_tensor_log(const CTTensor* t);
+CTTensor* ct_tensor_sqrt(const CTTensor* t);
+CTTensor* ct_tensor_relu(const CTTensor* t);
+
 #endif

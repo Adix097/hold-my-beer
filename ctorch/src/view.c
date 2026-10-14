@@ -125,3 +125,23 @@ CTTensor* ct_tensor_reshape(const CTTensor* t, size_t ndim, const size_t* new_sh
     compute_contiguous_strides((int)ndim, out->shape, out->strides);
     return out;
 }
+
+CTTensor* ct_tensor_expand(const CTTensor* t, size_t ndim, const size_t* shape) {
+    CT_CHECK(ndim >= t->ndim && ndim <= CT_MAX_DIMS, "expand: bad ndim");
+    CTTensor* v = view_of(t);
+    size_t lead = ndim - t->ndim;
+    v->ndim = ndim;
+    
+    for (size_t i = 0; i < ndim; i++) {
+        v->shape[i] = shape[i];
+        if (i < lead) {
+            v->strides[i] = 0;
+        } else if (t->shape[i - lead] == shape[i]) {
+            v->strides[i] = t->strides[i - lead];
+        } else {
+            CT_CHECK(t->shape[i - lead] == 1, "expand: shapes not broadcastable");
+            v->strides[i] = 0;
+        }
+    }
+    return v;
+}
