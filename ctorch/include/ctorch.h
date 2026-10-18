@@ -7,6 +7,7 @@
 #include <stdlib.h>
 
 #define CT_MAX_DIMS 8
+#define CT_MAX_INPUTS 2
 
 // minimal error handling: prints location and abort
 #define CT_CHECK(cond, msg)                                                            \
@@ -41,6 +42,13 @@ typedef struct CTTensor {
     struct CTTensor* grad; // NULL until backward fills it
     CTNode* grad_fn; // NULL for tensors created by user
 } CTTensor;
+
+struct CTNode {
+    const char* name;
+    size_t n_inputs;
+    CTTensor* inputs[CT_MAX_INPUTS];
+    /* backward function arrives in 5c */
+};
 
 void compute_contiguous_strides(size_t ndim, const uint64_t* shape, uint64_t* strides);
 
@@ -81,5 +89,9 @@ CTTensor* ct_tensor_mean(const CTTensor* t, size_t dim, int keepdim);
 CTTensor* ct_tensor_max(const CTTensor* t, size_t dim, int keepdim);
 CTTensor* ct_tensor_sum_all(const CTTensor* t);
 CTTensor* ct_tensor_matmul(const CTTensor* a, const CTTensor* b);
+
+CTNode* ct_node_new(const char* name, const CTTensor* a, const CTTensor* b);
+void ct_node_free(CTNode* n);
+void ct_record(CTTensor* out, const char* name, const CTTensor* a, const CTTensor* b);
 
 #endif

@@ -73,6 +73,7 @@ void ct_tensor_free(CTTensor* t) {
     
     ct_storage_release(t->storage);
     ct_tensor_free(t->grad);
+    ct_node_free(t->grad_fn);
     free(t);
 }
 
