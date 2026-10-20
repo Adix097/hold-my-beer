@@ -76,6 +76,36 @@ void ct_backward_mul(CTNode* node, const CTTensor* g, CTTensor** grads_in) {
     }
 }
 
+// put the squashed dim back as size 1, then stretch it to the input's size 
+// returns a tensor the caller owns
+static CTTensor* unreduce(CTNode* node, const CTTensor* g) {
+    CTTensor* in = node->inputs[0];
+    size_t keep_shape[CT_MAX_DIMS];
+    for (size_t i = 0; i < in->ndim; i++) keep_shape[i] = in->shape[i];
+    keep_shape[node->dim] = 1;
+
+    CTTensor* shaped = ct_tensor_reshape(g, in->ndim, keep_shape);
+    CTTensor* stretched = ct_tensor_expand(shaped, in->ndim, in->shape);
+    CTTensor* result = ct_tensor_contiguous(stretched);
+    ct_tensor_free(shaped);
+    ct_tensor_free(stretched);
+    return result;
+}
+
+void ct_backward_sum(CTNode* node, const CTTensor* g, CTTensor** grads_in) {
+    grads_in[0] = unreduce(node, g);
+}
+
+void ct_backward_mean(CTNode* node, const CTTensor* g, CTTensor** grads_in) {
+    CTTensor* full = unreduce(node, g);
+    float scale = 1.0f / (float)node->inputs[0]->shape[node->dim];
+    size_t one[] = {1};
+    CTTensor* s = ct_tensor_from_data(&scale, 1, one);
+    grads_in[0] = ct_tensor_mul(full, s);
+    ct_tensor_free(full);
+    ct_tensor_free(s);
+}
+
 // ---------- The backward walk ----------
 
 typedef struct {

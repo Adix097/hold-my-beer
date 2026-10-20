@@ -48,6 +48,8 @@ struct CTNode {
     size_t n_inputs;
     CTTensor* inputs[CT_MAX_INPUTS];
     int visited; // needed for backward walk
+    size_t dim;
+    int keepdim;
     void (*backward)(CTNode* node, const CTTensor* grad_out, CTTensor** grad_in);
 };
 
@@ -103,6 +105,8 @@ void ct_backward_add(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in
 void ct_backward_mul(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in);
 void ct_tensor_backward(CTTensor* root);
 
+void ct_backward_sum(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in);
+void ct_backward_mean(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in);
 void ct_backward_sub(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in);
 void ct_backward_div(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in);
 void ct_backward_neg(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in);

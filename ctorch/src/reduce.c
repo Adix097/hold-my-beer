@@ -21,36 +21,49 @@ static CTTensor* reduce_alloc(const CTTensor* t, size_t dim, int keepdim, size_t
     }
     return ct_tensor_zeros(nd, shape);
 }
-
-#define CT_DEFINE_REDUCE(name, init, update)                              \
-    CTTensor* name(const CTTensor* t, size_t dim, int keepdim) {          \
-        size_t outer, red, inner;                                         \
+#define CT_DEFINE_REDUCE(name, label, backward_fn, init, update)             \
+    CTTensor* name(const CTTensor* t, size_t dim, int keepdim) {             \
+        size_t outer, red, inner;                                            \
         CTTensor* out = reduce_alloc(t, dim, keepdim, &outer, &red, &inner); \
-        CTTensor* src = ct_tensor_contiguous(t);                          \
-        const float* in = src->storage->data + src->offset;               \
-        float* o = out->storage->data;                                    \
-        for (size_t a = 0; a < outer; a++) {                              \
-            for (size_t b = 0; b < inner; b++) {                          \
-                float acc = (init);                                       \
-                for (size_t r = 0; r < red; r++) {                        \
-                    float x = in[(a * red + r) * inner + b];              \
-                    acc = (update);                                       \
-                }                                                         \
-                o[a * inner + b] = acc;                                   \
-            }                                                             \
-        }                                                                 \
-        ct_tensor_free(src);                                              \
-        return out;                                                       \
+        CTTensor* src = ct_tensor_contiguous(t);                             \
+        const float* in = src->storage->data + src->offset;                  \
+        float* o = out->storage->data;                                       \
+        for (size_t a = 0; a < outer; a++) {                                 \
+            for (size_t b = 0; b < inner; b++) {                             \
+                float acc = (init);                                          \
+                for (size_t r = 0; r < red; r++) {                           \
+                    float x = in[(a * red + r) * inner + b];                 \
+                    acc = (update);                                          \
+                }                                                            \
+                o[a * inner + b] = acc;                                      \
+            }                                                                \
+        }                                                                    \
+        ct_record(out, label, t, NULL, backward_fn);                         \
+        if (out->grad_fn) {                                                  \
+            out->grad_fn->dim = dim;                                         \
+            out->grad_fn->keepdim = keepdim;                                 \
+        }                                                                    \
+        return out;                                                          \
     }
 
-CT_DEFINE_REDUCE(ct_tensor_sum, 0.0f, acc + x)
-CT_DEFINE_REDUCE(ct_tensor_max, -INFINITY, x > acc ? x : acc)
+CT_DEFINE_REDUCE(ct_tensor_sum, "sum", ct_backward_sum, 0.0f, acc + x)
+CT_DEFINE_REDUCE(ct_tensor_max, "max", NULL, -INFINITY, x > acc ? x : acc)
 
 CTTensor* ct_tensor_mean(const CTTensor* t, size_t dim, int keepdim) {
+    int saved = ct_grad_enabled;
+    ct_grad_enabled = 0; // don't let the inner sum record its own node
     CTTensor* out = ct_tensor_sum(t, dim, keepdim);
+    ct_grad_enabled = saved;
+
     float scale = 1.0f / (float)t->shape[dim];
     size_t n = ct_tensor_numel(out);
     for (size_t i = 0; i < n; i++) out->storage->data[i] *= scale;
+
+    ct_record(out, "mean", t, NULL, ct_backward_mean);
+    if (out->grad_fn) {
+        out->grad_fn->dim = dim;
+        out->grad_fn->keepdim = keepdim;
+    }
     return out;
 }
 
