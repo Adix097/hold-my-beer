@@ -65,6 +65,7 @@ CT_DEFINE_BINARY(ct_tensor_div, "div", ct_backward_div, x / y)
         return out;                                                       \
     }
 
+CT_DEFINE_UNARY(ct_tensor_neg, "neg", ct_backward_neg, -x)
 CT_DEFINE_UNARY(ct_tensor_exp, "exp", ct_backward_exp, expf(x))
 CT_DEFINE_UNARY(ct_tensor_log, "log", ct_backward_log, logf(x))
 CT_DEFINE_UNARY(ct_tensor_sqrt, "sqrt", ct_backward_sqrt, sqrtf(x))
