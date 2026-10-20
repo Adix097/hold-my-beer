@@ -140,3 +140,45 @@ void ct_tensor_backward(CTTensor* root) {
     free(order.items);
     ct_grad_enabled = 1;
 }
+
+void ct_backward_sub(CTNode* node, const CTTensor* g, CTTensor** grads_in) {
+    CTTensor* a = node->inputs[0];
+    CTTensor* b = node->inputs[1];
+    grads_in[0] = grads_in[1] = NULL;
+
+    if (a->requires_grad) grads_in[0] = sum_to_shape(g, a);
+
+    if (b->requires_grad) {
+        CTTensor* neg = ct_tensor_neg(g);
+        grads_in[1] = sum_to_shape(neg, b);
+        ct_tensor_free(neg);
+    }
+}
+
+void ct_backward_div(CTNode* node, const CTTensor* g, CTTensor** grads_in) {
+    CTTensor* a = node->inputs[0];
+    CTTensor* b = node->inputs[1];
+    grads_in[0] = grads_in[1] = NULL;
+
+    if (a->requires_grad) {
+        CTTensor* full = ct_tensor_div(g, b);
+        grads_in[0] = sum_to_shape(full, a);
+        ct_tensor_free(full);
+    }
+
+    if (b->requires_grad) {
+        CTTensor* ga = ct_tensor_mul(g, a);
+        CTTensor* bb = ct_tensor_mul(b, b);
+        CTTensor* q = ct_tensor_div(ga, bb);
+        CTTensor* full = ct_tensor_neg(q);
+        grads_in[1] = sum_to_shape(full, b);
+        ct_tensor_free(ga);
+        ct_tensor_free(bb);
+        ct_tensor_free(q);
+        ct_tensor_free(full);
+    }
+}
+
+void ct_backward_neg(CTNode* node, const CTTensor* g, CTTensor** grads_in) {
+    grads_in[0] = node->inputs[0]->requires_grad ? ct_tensor_neg(g) : NULL;
+}

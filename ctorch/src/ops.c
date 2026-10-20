@@ -45,11 +45,12 @@ static size_t broadcast_shape(const CTTensor* a, const CTTensor* b, size_t* out)
     }
 
 CT_DEFINE_BINARY(ct_tensor_add, "add", ct_backward_add, x + y)
-CT_DEFINE_BINARY(ct_tensor_sub, "sub", NULL, x - y)
+CT_DEFINE_BINARY(ct_tensor_sub, "sub", ct_backward_sub, x - y)
 CT_DEFINE_BINARY(ct_tensor_mul, "mul", ct_backward_mul, x * y)
-CT_DEFINE_BINARY(ct_tensor_div, "div", NULL, x / y)
+CT_DEFINE_BINARY(ct_tensor_div, "div", ct_backward_div, x / y)
 
-#define CT_DEFINE_UNARY(name, expr)                                       \
+
+#define CT_DEFINE_UNARY(name, label, backward_fn, expr)                   \
     CTTensor* name(const CTTensor* t) {                                   \
         CTTensor* src = ct_tensor_contiguous(t);                          \
         CTTensor* out = ct_tensor_zeros(t->ndim, t->shape);               \
@@ -60,11 +61,12 @@ CT_DEFINE_BINARY(ct_tensor_div, "div", NULL, x / y)
             out->storage->data[i] = (expr);                               \
         }                                                                 \
         ct_tensor_free(src);                                              \
+        ct_record(out, label, t, NULL, backward_fn);                      \
         return out;                                                       \
     }
 
-CT_DEFINE_UNARY(ct_tensor_neg, -x)
-CT_DEFINE_UNARY(ct_tensor_exp, expf(x))
-CT_DEFINE_UNARY(ct_tensor_log, logf(x))
-CT_DEFINE_UNARY(ct_tensor_sqrt, sqrtf(x))
-CT_DEFINE_UNARY(ct_tensor_relu, x > 0.0f ? x : 0.0f)
+CT_DEFINE_UNARY(ct_tensor_neg, "neg", ct_backward_neg, -x)
+CT_DEFINE_UNARY(ct_tensor_exp, "exp", NULL, expf(x))
+CT_DEFINE_UNARY(ct_tensor_log, "log", NULL, logf(x))
+CT_DEFINE_UNARY(ct_tensor_sqrt, "sqrt", NULL, sqrtf(x))
+CT_DEFINE_UNARY(ct_tensor_relu, "relu", NULL, x > 0.0f ? x : 0.0f)

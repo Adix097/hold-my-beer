@@ -103,4 +103,8 @@ void ct_backward_add(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in
 void ct_backward_mul(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in);
 void ct_tensor_backward(CTTensor* root);
 
+void ct_backward_sub(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in);
+void ct_backward_div(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in);
+void ct_backward_neg(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in);
+
 #endif
