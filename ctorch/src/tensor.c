@@ -1,11 +1,6 @@
 #include "ctorch.h"
 #include <string.h>
 
-/*
-* functions declared as static are meant of internal use only
-* no other .c file can call those functions
-*/
-
 // returns the total number of elements by multiplying the sizes
 // a zero dimensional tensor contains one element
 uint64_t ct_tensor_numel(const CTTensor* t) {

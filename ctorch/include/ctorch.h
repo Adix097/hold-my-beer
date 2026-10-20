@@ -47,7 +47,8 @@ struct CTNode {
     const char* name;
     size_t n_inputs;
     CTTensor* inputs[CT_MAX_INPUTS];
-    /* backward function arrives in 5c */
+    int visited; // needed for backward walk
+    void (*backward)(CTNode* node, const CTTensor* grad_out, CTTensor** grad_in);
 };
 
 void compute_contiguous_strides(size_t ndim, const uint64_t* shape, uint64_t* strides);
@@ -92,6 +93,14 @@ CTTensor* ct_tensor_matmul(const CTTensor* a, const CTTensor* b);
 
 CTNode* ct_node_new(const char* name, const CTTensor* a, const CTTensor* b);
 void ct_node_free(CTNode* n);
-void ct_record(CTTensor* out, const char* name, const CTTensor* a, const CTTensor* b);
+
+typedef void (*CTBackwardFn)(CTNode*, const CTTensor*, CTTensor**);
+
+extern int ct_grad_enabled;
+void ct_record(CTTensor* out, const char* name, const CTTensor* a, const CTTensor* b, CTBackwardFn backward);
+
+void ct_backward_add(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in);
+void ct_backward_mul(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in);
+void ct_tensor_backward(CTTensor* root);
 
 #endif

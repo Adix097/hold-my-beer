@@ -14,7 +14,7 @@ static size_t broadcast_shape(const CTTensor* a, const CTTensor* b, size_t* out)
     return nd;
 }
 
-#define CT_DEFINE_BINARY(name, label, expr)                               \
+#define CT_DEFINE_BINARY(name, label, backward_fn, expr)                  \
     CTTensor* name(const CTTensor* a, const CTTensor* b) {                \
         size_t shape[CT_MAX_DIMS];                                        \
         size_t ndim = broadcast_shape(a, b, shape);                       \
@@ -40,14 +40,14 @@ static size_t broadcast_shape(const CTTensor* a, const CTTensor* b, size_t* out)
         }                                                                 \
         ct_tensor_free(ea);                                               \
         ct_tensor_free(eb);                                               \
-        ct_record(out, label, a, b);                                      \
+        ct_record(out, label, a, b, backward_fn);                         \
         return out;                                                       \
     }
 
-CT_DEFINE_BINARY(ct_tensor_add, "add", x + y)
-CT_DEFINE_BINARY(ct_tensor_sub, "sub", x - y)
-CT_DEFINE_BINARY(ct_tensor_mul, "mul", x * y)
-CT_DEFINE_BINARY(ct_tensor_div, "div", x / y)
+CT_DEFINE_BINARY(ct_tensor_add, "add", ct_backward_add, x + y)
+CT_DEFINE_BINARY(ct_tensor_sub, "sub", NULL, x - y)
+CT_DEFINE_BINARY(ct_tensor_mul, "mul", ct_backward_mul, x * y)
+CT_DEFINE_BINARY(ct_tensor_div, "div", NULL, x / y)
 
 #define CT_DEFINE_UNARY(name, expr)                                       \
     CTTensor* name(const CTTensor* t) {                                   \
