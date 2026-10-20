@@ -115,5 +115,6 @@ void ct_backward_exp(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in
 void ct_backward_log(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in);
 void ct_backward_sqrt(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in);
 void ct_backward_relu(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in);
+void ct_backward_matmul(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in);
 
 #endif

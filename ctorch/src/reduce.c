@@ -104,5 +104,6 @@ CTTensor* ct_tensor_matmul(const CTTensor* a, const CTTensor* b) {
     }
     ct_tensor_free(ac);
     ct_tensor_free(bc);
+    ct_record(out, "matmul", a, b, ct_backward_matmul);
     return out;
 }

@@ -106,6 +106,22 @@ void ct_backward_mean(CTNode* node, const CTTensor* g, CTTensor** grads_in) {
     ct_tensor_free(s);
 }
 
+void ct_backward_matmul(CTNode* node, const CTTensor* g, CTTensor** grads_in) {
+    CTTensor* a = node->inputs[0];
+    CTTensor* b = node->inputs[1];
+    grads_in[0] = grads_in[1] = NULL;
+    if (a->requires_grad) {
+        CTTensor* bt = ct_tensor_transpose(b, 0, 1);
+        grads_in[0] = ct_tensor_matmul(g, bt);
+        ct_tensor_free(bt);
+    }
+    if (b->requires_grad) {
+        CTTensor* at = ct_tensor_transpose(a, 0, 1);
+        grads_in[1] = ct_tensor_matmul(at, g);
+        ct_tensor_free(at);
+    }
+}
+
 // ---------- The backward walk ----------
 
 typedef struct {
