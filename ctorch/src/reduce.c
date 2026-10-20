@@ -43,6 +43,7 @@ static CTTensor* reduce_alloc(const CTTensor* t, size_t dim, int keepdim, size_t
             out->grad_fn->dim = dim;                                         \
             out->grad_fn->keepdim = keepdim;                                 \
         }                                                                    \
+        ct_tensor_free(src);                                                 \
         return out;                                                          \
     }
 
