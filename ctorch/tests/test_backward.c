@@ -1,97 +1,195 @@
 #include "ctorch.h"
+#include <math.h>
 
-static CTTensor* scalar(float v) {
-    size_t one[] = {1};
-    CTTensor* t = ct_tensor_from_data(&v, 1, one);
-    t->requires_grad = 1;
-    return t;
+static CTTensor* scalar(float value) {
+    size_t shape[] = {1};
+
+    CTTensor* tensor = ct_tensor_from_data(&value, 1, shape);
+    tensor->requires_grad = 1;
+
+    return tensor;
+}
+
+typedef CTTensor* (*UnaryFn)(const CTTensor*);
+
+static void check(const char* name, UnaryFn function, float value) {
+    CTTensor* input = scalar(value);
+    CTTensor* output = function(input);
+
+    ct_tensor_backward(output);
+
+    float analytic = input->grad->storage->data[0];
+
+    float eps = 1e-2f;
+
+    CTTensor* input_hi = scalar(value + eps);
+    CTTensor* input_lo = scalar(value - eps);
+
+    CTTensor* output_hi = function(input_hi);
+    CTTensor* output_lo = function(input_lo);
+
+    float numeric = (output_hi->storage->data[0] - output_lo->storage->data[0]) / (2.0f * eps);
+
+    printf("%-5s at %.1f: backward = %.4f, numeric = %.4f\n", name, value, analytic, numeric);
+
+    ct_tensor_free(input);
+    ct_tensor_free(output);
+
+    ct_tensor_free(input_hi);
+    ct_tensor_free(input_lo);
+    ct_tensor_free(output_hi);
+    ct_tensor_free(output_lo);
 }
 
 int main(void) {
-    {
-        size_t one[] = {1};
-        float xv = 2.0f, wv = 3.0f;
-        CTTensor* x = ct_tensor_from_data(&xv, 1, one);
-        CTTensor* w = ct_tensor_from_data(&wv, 1, one);
-        x->requires_grad = 1;
-        w->requires_grad = 1;
+    CTTensor* x1 = scalar(2.0f);
+    CTTensor* w1 = scalar(3.0f);
 
-        CTTensor* y = ct_tensor_mul(x, w);
-        CTTensor* L = ct_tensor_add(y, x);
-        ct_tensor_backward(L);
-        printf("x.grad = %.1f (expect 4)\n", x->grad->storage->data[0]);
-        printf("w.grad = %.1f (expect 2)\n", w->grad->storage->data[0]);
-        printf("y.grad = %.1f (expect 1)\n", y->grad->storage->data[0]);
+    CTTensor* y1 = ct_tensor_mul(x1, w1);
+    CTTensor* loss1 = ct_tensor_add(y1, x1);
 
-        float ra[] = {1, 2, 3, 4, 5, 6};
-        size_t sa[] = {2, 3};
-        float rb[] = {10, 20, 30};
-        size_t sb[] = {3};
-        CTTensor* a = ct_tensor_from_data(ra, 2, sa);
-        CTTensor* b = ct_tensor_from_data(rb, 1, sb);
-        a->requires_grad = 1;
-        b->requires_grad = 1;
-        CTTensor* out = ct_tensor_mul(a, b);
-        ct_tensor_backward(out);
-        printf("a.grad = "); ct_tensor_print(a->grad);
-        printf("b.grad = "); ct_tensor_print(b->grad);
+    ct_tensor_backward(loss1);
 
-        ct_tensor_free(x);
-        ct_tensor_free(w);
-        ct_tensor_free(y);
-        ct_tensor_free(L);
-        ct_tensor_free(a);
-        ct_tensor_free(b);
-        ct_tensor_free(out);
-    }
+    printf("\n=== Multiplication + Addition ===\n");
+    printf("x.grad = %.1f (expect 4)\n", x1->grad->storage->data[0]);
+    printf("w.grad = %.1f (expect 2)\n", w1->grad->storage->data[0]);
+    printf("y.grad = %.1f (expect 1)\n", y1->grad->storage->data[0]);
 
-    {
-        CTTensor* x = scalar(5.0f);
-        CTTensor* w = scalar(2.0f);
-        CTTensor* L = ct_tensor_sub(x, w);
-        ct_tensor_backward(L);
-        printf("sub: x.grad = %.4f (expect 1), w.grad = %.4f (expect -1)\n", x->grad->storage->data[0], w->grad->storage->data[0]);
-        ct_tensor_free(x);
-        ct_tensor_free(w);
-        ct_tensor_free(L);
+    ct_tensor_free(x1);
+    ct_tensor_free(w1);
+    ct_tensor_free(y1);
+    ct_tensor_free(loss1);
 
-        x = scalar(6.0f);
-        w = scalar(3.0f);
-        L = ct_tensor_div(x, w);
-        ct_tensor_backward(L);
-        printf("div: x.grad = %.4f (expect 0.3333), w.grad = %.4f (expect -0.6667)\n", x->grad->storage->data[0], w->grad->storage->data[0]);
-        ct_tensor_free(x);
-        ct_tensor_free(w);
-        ct_tensor_free(L);
+    float a_data[] = {1, 2, 3, 4, 5, 6};
+    size_t a_shape[] = {2, 3};
 
-        x = scalar(2.0f);
-        w = scalar(3.0f);
-        CTTensor* y = ct_tensor_mul(x, w);
-        L = ct_tensor_neg(y);
-        ct_tensor_backward(L);
-        printf("neg: x.grad = %.1f (expect -3), w.grad = %.1f (expect -2)\n", x->grad->storage->data[0], w->grad->storage->data[0]);
-        ct_tensor_free(x);
-        ct_tensor_free(w);
-        ct_tensor_free(y);
-        ct_tensor_free(L);
-        
-        float ra[] = {1, 2, 3, 4, 5, 6};
-        size_t sa[] = {2, 3};
-        float rb[] = {10, 20, 30};
-        size_t sb[] = {3};
-        CTTensor* a = ct_tensor_from_data(ra, 2, sa);
-        CTTensor* b = ct_tensor_from_data(rb, 1, sb);
-        a->requires_grad = 1;
-        b->requires_grad = 1;
-        L = ct_tensor_sub(a, b);
-        ct_tensor_backward(L);
-        printf("a.grad = "); ct_tensor_print(a->grad);
-        printf("b.grad = "); ct_tensor_print(b->grad);
-        ct_tensor_free(a);
-        ct_tensor_free(b);
-        ct_tensor_free(L);
-    }
+    float b_data[] = {10, 20, 30};
+    size_t b_shape[] = {3};
 
-    printf("done\n");
+    CTTensor* a1 = ct_tensor_from_data(a_data, 2, a_shape);
+    CTTensor* b1 = ct_tensor_from_data(b_data, 1, b_shape);
+
+    a1->requires_grad = 1;
+    b1->requires_grad = 1;
+
+    CTTensor* product1 = ct_tensor_mul(a1, b1);
+
+    ct_tensor_backward(product1);
+
+    printf("\n=== Broadcasting Multiplication ===\n");
+    printf("a.grad = ");
+    ct_tensor_print(a1->grad);
+
+    printf("b.grad = ");
+    ct_tensor_print(b1->grad);
+
+    ct_tensor_free(a1);
+    ct_tensor_free(b1);
+    ct_tensor_free(product1);
+
+    CTTensor* x2 = scalar(5.0f);
+    CTTensor* w2 = scalar(2.0f);
+
+    CTTensor* loss2 = ct_tensor_sub(x2, w2);
+
+    ct_tensor_backward(loss2);
+
+    printf("\n=== Subtraction ===\n");
+    printf("x.grad = %.4f (expect 1)\n", x2->grad->storage->data[0]);
+    printf("w.grad = %.4f (expect -1)\n", w2->grad->storage->data[0]);
+
+    ct_tensor_free(x2);
+    ct_tensor_free(w2);
+    ct_tensor_free(loss2);
+
+    CTTensor* x3 = scalar(6.0f);
+    CTTensor* w3 = scalar(3.0f);
+
+    CTTensor* loss3 = ct_tensor_div(x3, w3);
+
+    ct_tensor_backward(loss3);
+
+    printf("\n=== Division ===\n");
+    printf("x.grad = %.4f (expect 0.3333)\n", x3->grad->storage->data[0]);
+    printf("w.grad = %.4f (expect -0.6667)\n", w3->grad->storage->data[0]);
+
+    ct_tensor_free(x3);
+    ct_tensor_free(w3);
+    ct_tensor_free(loss3);
+
+    CTTensor* x4 = scalar(2.0f);
+    CTTensor* w4 = scalar(3.0f);
+
+    CTTensor* product2 = ct_tensor_mul(x4, w4);
+    CTTensor* loss4 = ct_tensor_neg(product2);
+
+    ct_tensor_backward(loss4);
+
+    printf("\n=== Negation ===\n");
+    printf("x.grad = %.1f (expect -3)\n", x4->grad->storage->data[0]);
+    printf("w.grad = %.1f (expect -2)\n", w4->grad->storage->data[0]);
+
+    ct_tensor_free(x4);
+    ct_tensor_free(w4);
+    ct_tensor_free(product2);
+    ct_tensor_free(loss4);
+
+    float c_data[] = {1, 2, 3, 4, 5, 6};
+    size_t c_shape[] = {2, 3};
+
+    float d_data[] = {10, 20, 30};
+    size_t d_shape[] = {3};
+
+    CTTensor* c = ct_tensor_from_data(c_data, 2, c_shape);
+    CTTensor* d = ct_tensor_from_data(d_data, 1, d_shape);
+
+    c->requires_grad = 1;
+    d->requires_grad = 1;
+
+    CTTensor* loss5 = ct_tensor_sub(c, d);
+
+    ct_tensor_backward(loss5);
+
+    printf("\n=== Broadcasting Subtraction ===\n");
+    printf("c.grad = ");
+    ct_tensor_print(c->grad);
+
+    printf("d.grad = ");
+    ct_tensor_print(d->grad);
+
+    ct_tensor_free(c);
+    ct_tensor_free(d);
+    ct_tensor_free(loss5);
+
+    printf("\n=== Unary Gradient Checks ===\n");
+
+    check("exp",  ct_tensor_exp,  1.5f);
+    check("log",  ct_tensor_log,  2.0f);
+    check("sqrt", ct_tensor_sqrt, 4.0f);
+
+    check("relu", ct_tensor_relu,  3.0f);
+    check("relu", ct_tensor_relu, -3.0f);
+
+    CTTensor* x5 = scalar(1.0f);
+    CTTensor* w5 = scalar(2.0f);
+
+    CTTensor* product3 = ct_tensor_mul(x5, w5);
+    CTTensor* loss6 = ct_tensor_exp(product3);
+
+    ct_tensor_backward(loss6);
+
+    float expected_exp2 = expf(2.0f);
+
+    printf("\n=== Chained Autograd ===\n");
+    printf("x.grad = %.4f (expect %.4f)\n", x5->grad->storage->data[0], 2.0f * expected_exp2);
+
+    printf("w.grad = %.4f (expect %.4f)\n", w5->grad->storage->data[0], expected_exp2);
+
+    ct_tensor_free(x5);
+    ct_tensor_free(w5);
+    ct_tensor_free(product3);
+    ct_tensor_free(loss6);
+
+    printf("\ndone\n");
     return 0;
 }

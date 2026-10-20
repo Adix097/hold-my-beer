@@ -114,6 +114,45 @@ static void accumulate(CTTensor* t, CTTensor* g) {
     }
 }
 
+void ct_backward_exp(CTNode* node, const CTTensor* g, CTTensor** grads_in) {
+    CTTensor* a = node->inputs[0];
+    CTTensor* e = ct_tensor_exp(a);
+    grads_in[0] = ct_tensor_mul(g, e);
+    ct_tensor_free(e);
+}
+
+void ct_backward_log(CTNode* node, const CTTensor* g, CTTensor** grads_in) {
+    grads_in[0] = ct_tensor_div(g, node->inputs[0]);
+}
+
+void ct_backward_sqrt(CTNode* node, const CTTensor* g, CTTensor** grads_in) {
+    CTTensor* s = ct_tensor_sqrt(node->inputs[0]);
+    float twof = 2.0f;
+    size_t one[] = {1};
+    CTTensor* two = ct_tensor_from_data(&twof, 1, one);
+    CTTensor* denom = ct_tensor_mul(s, two);
+    grads_in[0] = ct_tensor_div(g, denom);
+    ct_tensor_free(s);
+    ct_tensor_free(two);
+    ct_tensor_free(denom);
+}
+
+void ct_backward_relu(CTNode* node, const CTTensor* g, CTTensor** grads_in) {
+    CTTensor* a = node->inputs[0];
+    CTTensor* ac = ct_tensor_contiguous(a);
+    CTTensor* mask = ct_tensor_zeros(a->ndim, a->shape);
+    size_t n = ct_tensor_numel(mask);
+    const float* in = ac->storage->data + ac->offset;
+    
+    for (size_t i = 0; i < n; i++) {
+        mask->storage->data[i] = in[i] > 0.0f ? 1.0f : 0.0f;
+    }
+
+    grads_in[0] = ct_tensor_mul(g, mask);
+    ct_tensor_free(ac);
+    ct_tensor_free(mask);
+}
+
 void ct_tensor_backward(CTTensor* root) {
     CT_CHECK(root->requires_grad, "backward: tensor does not require grad");
 
