@@ -117,4 +117,7 @@ void ct_backward_sqrt(CTNode* node, const CTTensor* grad_out, CTTensor** grads_i
 void ct_backward_relu(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in);
 void ct_backward_matmul(CTNode* node, const CTTensor* grad_out, CTTensor** grads_in);
 
+typedef CTTensor* (*CTGradFn)(CTTensor* const* inputs);
+float ct_gradcheck(CTGradFn f, CTTensor** inputs, size_t n, float eps);
+
 #endif
